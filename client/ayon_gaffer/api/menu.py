@@ -18,6 +18,7 @@ import GafferUI
 
 log = Logger.get_logger(__name__)
 
+
 def init_ayon_menu(menu):
     """
     Initializes the Ayon menu with various options and commands.
@@ -47,6 +48,7 @@ def init_ayon_menu(menu):
 
     return main_menu
 
+
 def update_context_menu_text(script_node):
     """
     Updates the text of a context menu in the Gaffer UI with the current
@@ -75,6 +77,7 @@ def update_context_menu_text(script_node):
             context_menu = action_list[idx+1]
             context_menu.setText(f"{project_name}{folder_path} | {task_name}")
 
+
 def init_context_menu_items(context_menu, item):
     """
     Initializes context menu items recursively based on the folder structure.
@@ -97,13 +100,15 @@ def init_context_menu_items(context_menu, item):
         context_menu.append(
             folder["name"], {"command": partial(update_context, folder)})
 
+
 def init_context_menu(menu):
     """
     Initializes the context menu for the given root element.
     """
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
-
+    folder = ayon_api.get_folder_by_path(project_name, folder_path)
+    folder_id = folder.get("id", "")
     # Create Context menu
     context_menu = IECore.MenuDefinition()
 
@@ -117,7 +122,8 @@ def init_context_menu(menu):
     context_menu.append("contextDivider", {"divider": True})
     context_menu.append("Set Task", {"subMenu": set_tasks_menu})
 
-    tasks = ayon_api.get_tasks_by_folder_path(project_name, folder_path)
+    tasks = ayon_api.get_tasks(
+        project_name=project_name, folder_ids=[folder_id])
 
     current_folder = ayon_api.get_folder_by_path(project_name, folder_path)
 
@@ -127,6 +133,7 @@ def init_context_menu(menu):
                            partial(update_context, current_folder, task)})
 
     return context_menu
+
 
 def install_menu(application):
     """
@@ -138,4 +145,4 @@ def install_menu(application):
     top_menu.append("Context", {"subMenu": init_context_menu})
 
     GafferSignal.post_context_changed().connect(
-        update_context_menu_text, scoped = False)
+        update_context_menu_text, scoped=False)

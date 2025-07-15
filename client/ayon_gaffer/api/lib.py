@@ -15,6 +15,7 @@ import GafferScene
 
 log = Logger.get_logger(__name__)
 
+
 def make_box(name: str,
              inputs: list = ["in"],
              outputs: list = ["out"],
@@ -79,6 +80,7 @@ def make_box(name: str,
 
     return box
 
+
 def get_next_valid_name(template, script_node):
     """
     Find the next number to replace a _##_ part of templates with.
@@ -127,6 +129,7 @@ def get_next_valid_name(template, script_node):
 
     return f"{head}{new_number}{tail}"
 
+
 def create_sub_groups(parent, sub_groups):
     '''
     Given a parent box node and a list of group names this function adds
@@ -160,10 +163,10 @@ def create_sub_groups(parent, sub_groups):
         plug_label = f"Enable {subs}/{grp}"
         plug_name = plug_label.replace(" ", "_").replace("/", "_")
         plug = Gaffer.BoolPlug(
-                plug_name,
-                defaultValue=True,
-                flags=Gaffer.Plug.Flags.Default | Gaffer.Plug.Flags.Dynamic,
-            )
+            plug_name,
+            defaultValue=True,
+            flags=Gaffer.Plug.Flags.Default | Gaffer.Plug.Flags.Dynamic,
+        )
         parent.addChild(plug)
         Gaffer.Metadata.registerValue(plug, "nodule:type", "")
         Gaffer.Metadata.registerValue(plug, "label", plug_label)
@@ -174,6 +177,7 @@ def create_sub_groups(parent, sub_groups):
         group_nodes.append(group_node)
         parent.addChild(group_node)
     return group_nodes
+
 
 def make_scene_load_box(
     scene_root,
@@ -214,10 +218,10 @@ def make_scene_load_box(
     box.setName(box_name)
 
     filename_plug = Gaffer.StringPlug(
-                "fileName",
-                defaultValue="",
-                flags=Gaffer.Plug.Flags.Default | Gaffer.Plug.Flags.Dynamic,
-            )
+        "fileName",
+        defaultValue="",
+        flags=Gaffer.Plug.Flags.Default | Gaffer.Plug.Flags.Dynamic,
+    )
     Gaffer.Metadata.registerValue(filename_plug, "nodule:type", "")
     box.addChild(filename_plug)
 
@@ -276,6 +280,7 @@ def make_scene_load_box(
 
     return box
 
+
 def node_name_from_template(template_string, context):
     try:
         from ayon_core.pipeline.template_data import (
@@ -319,6 +324,7 @@ def node_name_from_template(template_string, context):
     template = StringTemplate(template_string)
     return template.format(formatting_data)
 
+
 def retrieve_context():
     """
     Tries to retrieve the saved script context by setting project, folder,
@@ -332,15 +338,14 @@ def retrieve_context():
     if all((project_name, folder_path, task_name)):
 
         folder = ayon_api.get_folder_by_path(project_name, folder_path)
-        task = ayon_api.get_task_by_folder_path(project_name,
-                                                folder_path,
-                                                task_name)
+        task = ayon_api.get_task_by_name(folder_path, folder_path, task_name)
 
         if all((folder, task)):
             return update_context(folder, task)
         else:
             log.warning(f"Could not retrive saved script context! "
                         f"{project_name}/{folder_path} | {task_name}")
+
 
 def set_script_settings(script_node, attr):
     """
@@ -372,6 +377,7 @@ def set_script_settings(script_node, attr):
     default_format["pixelAspect"].setValue(pix_aspect)
 
     log.info(f"Setting default format {res_width}x{res_height}, {pix_aspect}")
+
 
 def set_script_variables(script_node, attr):
     """
@@ -411,11 +417,12 @@ def set_script_variables(script_node, attr):
                         plug_type(
                             attrib_name,
                             defaultValue=default_value,
-                            flags=Gaffer.Plug.Flags.Default | \
-                                  Gaffer.Plug.Flags.Dynamic),
+                            flags=Gaffer.Plug.Flags.Default |
+                            Gaffer.Plug.Flags.Dynamic),
                         attrib_name))
 
             script_vars[attrib_name]["value"].setValue(attrib_value)
+
 
 def setup_project(script_container=None, script_node=None):
     """
@@ -431,6 +438,8 @@ def setup_project(script_container=None, script_node=None):
 
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
+    folder = ayon_api.get_folder_by_path(project_name, folder_path)
+    folder_id = folder.get("id", "")
     task_name = get_current_task_name()
 
     GafferSignal.pre_context_changed()(GafferScript.node)
@@ -438,44 +447,44 @@ def setup_project(script_container=None, script_node=None):
     GafferScript.node["variables"]["projectRootDirectory"]["value"].setValue(
         "${AYON_WORKDIR}")
 
-    task = ayon_api.get_task_by_folder_path(project_name,
-                                            folder_path,
-                                            task_name)
-
-    tags = task.get("tags")
+    task = ayon_api.get_task_by_name(project_name, folder_id, task_name)
+    # tags = task.get("tags")
     task_attrib = task.get("attrib")
 
     if task_attrib:
         task_attrib.update({"projectName": project_name,
                             "folderPath": folder_path,
-                            "taskName": task_name,
-                            "tags": " ".join(tags)})
+                            "taskName": task_name}
+                           )
 
         set_script_settings(GafferScript.node, task_attrib)
-        set_script_variables(GafferScript.node, task_attrib)
+        # set_script_variables(GafferScript.node, task_attrib)
 
     GafferSignal.post_context_changed()(GafferScript.node)
+
 
 def update_context(folder, task=None):
     """
     Update the current context based on the provided folder and task.
 
     If no task is provided, it attempts to find a task within the folder
-    that matches the types "Lookdev" or "Lighting", otherwise picks the first
+    that matches the types "lookdev" or "lighting", otherwise picks the first
     task. If no such task is found, it logs a warning and returns False.
     """
     project_name = get_current_project_name()
 
+    folder_id = folder.get("id", "")
     if task is None:
-        tasks = ayon_api.get_tasks_by_folder_path(project_name, folder["path"])
+        tasks = list(ayon_api.get_tasks(
+            project_name=project_name, folder_ids=[folder_id]))
 
         if not tasks:
             log.warning(f"No tasks found for folder \
                 '{folder['name']}', abort context change!")
             return False
-
+        log.info(tasks)
         task = next((t for t in tasks if t["taskType"]
-                     in {"Lookdev", "Lighting"}), tasks[0])
+                     in {"lookdev", "lighting"}), tasks[0])
 
     context_tools.change_current_context(folder, task)
 
@@ -488,6 +497,7 @@ def update_context(folder, task=None):
     setup_project()
 
     return True
+
 
 class GafferSignal(object):
     """
@@ -509,6 +519,7 @@ class GafferSignal(object):
         Method to access the post-context changed signal.
         """
         return cls.__post_context_changed
+
 
 class GafferScript(object):
     """
