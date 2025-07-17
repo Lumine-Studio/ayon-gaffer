@@ -402,9 +402,13 @@ def set_script_variables(script_node, attr):
             elif isinstance(attrib_value, str):
                 plug_type = Gaffer.StringPlug
                 default_value = attrib_value
+
+            elif isinstance(attrib_value, list):
+                continue
+
             else:
-                log.error(f"Unknown type of {type({attrib_value})} \
-                          for {attrib_name} - {attrib_value} skipping!")
+                log.error(f"Unknown type of {type(attrib_value)} "
+                          f"for {attrib_name} - {attrib_value} skipping!")
                 continue
 
             if not attrib_name.startswith("ayon:"):
@@ -458,7 +462,7 @@ def setup_project(script_container=None, script_node=None):
                            )
 
         set_script_settings(GafferScript.node, task_attrib)
-        # set_script_variables(GafferScript.node, task_attrib)
+        set_script_variables(GafferScript.node, task_attrib)
 
     GafferSignal.post_context_changed()(GafferScript.node)
 

@@ -18,6 +18,11 @@ import GafferUI
 
 log = Logger.get_logger(__name__)
 
+AVAILABLE_HIERARCHIES = [
+    "asset",
+    "shot",
+]
+
 
 def init_ayon_menu(menu):
     """
@@ -115,6 +120,10 @@ def init_context_menu(menu):
     hierarchy = ayon_api.get_folders_hierarchy(project_name)["hierarchy"]
 
     for item in hierarchy:
+
+        if item["name"] not in AVAILABLE_HIERARCHIES:
+            continue
+
         init_context_menu_items(context_menu, item)
 
     # Create Set Task sub menu
